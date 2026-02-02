@@ -380,6 +380,7 @@
     <script>
         let activeTags = [];
         let candidateCount = 0;
+        let conflictData = null;
 
         const extractionRules = {
             'senior': { type: 'seniority', value: 'Senior' },
@@ -497,49 +498,6 @@
             updateUI();
         }
 
-        function addManualFilter() {
-            const select = document.getElementById('filterDropdown');
-            const filterKey = select.value;
-            if (!filterKey) return;
-
-            const filter = manualFilterMap[filterKey];
-            
-            // Check for conflicts
-            if (filter.type === 'work') {
-                const existingWork = activeTags.find(t => t.type === 'work');
-                if (existingWork && existingWork.value !== filter.value) {
-                    const oldTag = { ...existingWork };
-                    showWarning(
-                        `Filter '${filter.value}' conflicts with ${existingWork.source === 'prompt' ? 'prompt' : 'filter'} '${existingWork.value}'`,
-                        oldTag,
-                        filter
-                    );
-                    // Remove old tag by default (filter wins)
-                    activeTags = activeTags.filter(t => t.type !== 'work');
-                }
-            }
-
-            // Check for duplicates
-            const exists = activeTags.find(t => t.type === filter.type && t.value === filter.value);
-            if (!exists) {
-                activeTags.push({
-                    ...filter,
-                    source: 'manual'
-                });
-            }
-
-            select.value = '';
-            updateUI();
-        }
-
-        function removeTag(index) {
-            activeTags.splice(index, 1);
-            hideWarning();
-            updateUI();
-        }
-
-        let conflictData = null;
-
         function showWarning(message, oldTag = null, newTag = null) {
             conflictData = { oldTag, newTag };
             const warningBox = document.getElementById('warningBox');
@@ -570,10 +528,8 @@
             if (!conflictData) return;
             
             if (action === 'keep-new') {
-                // Already done - new tag added, old removed
                 hideWarning();
             } else if (action === 'keep-old') {
-                // Remove new tag, keep old
                 activeTags = activeTags.filter(t => 
                     !(t.type === conflictData.newTag.type && t.value === conflictData.newTag.value)
                 );
@@ -581,7 +537,6 @@
                 hideWarning();
                 updateUI();
             } else if (action === 'keep-both') {
-                // Add old tag back
                 activeTags.push(conflictData.oldTag);
                 hideWarning();
                 updateUI();
@@ -592,6 +547,44 @@
 
         function hideWarning() {
             document.getElementById('warningBox').style.display = 'none';
+        }
+
+        function addManualFilter() {
+            const select = document.getElementById('filterDropdown');
+            const filterKey = select.value;
+            if (!filterKey) return;
+
+            const filter = manualFilterMap[filterKey];
+            
+            if (filter.type === 'work') {
+                const existingWork = activeTags.find(t => t.type === 'work');
+                if (existingWork && existingWork.value !== filter.value) {
+                    const oldTag = { ...existingWork };
+                    showWarning(
+                        `Filter '${filter.value}' conflicts with ${existingWork.source === 'prompt' ? 'prompt' : 'filter'} '${existingWork.value}'`,
+                        oldTag,
+                        filter
+                    );
+                    activeTags = activeTags.filter(t => t.type !== 'work');
+                }
+            }
+
+            const exists = activeTags.find(t => t.type === filter.type && t.value === filter.value);
+            if (!exists) {
+                activeTags.push({
+                    ...filter,
+                    source: 'manual'
+                });
+            }
+
+            select.value = '';
+            updateUI();
+        }
+
+        function removeTag(index) {
+            activeTags.splice(index, 1);
+            hideWarning();
+            updateUI();
         }
 
         function updateUI() {
@@ -609,7 +602,6 @@
                     </div>
                 `).join('');
 
-                // Calculate candidate count based on tags
                 candidateCount = Math.max(10, 150 - (activeTags.length * 20) - Math.floor(Math.random() * 30));
             }
 
@@ -620,7 +612,6 @@
             const resultsCount = document.getElementById('resultsCount');
             const candidatesContainer = document.getElementById('candidatesContainer');
 
-            // Add updating animation
             resultsCount.classList.add('updating');
             
             setTimeout(() => {
@@ -630,7 +621,6 @@
                 } else {
                     resultsCount.textContent = `${candidateCount} candidates found`;
 
-                    // Show sample candidates
                     const samplesToShow = candidatePool.slice(0, 3);
                     candidatesContainer.innerHTML = samplesToShow.map(candidate => `
                         <div class="candidate-card">
@@ -652,3 +642,4 @@
     </script>
 </body>
 </html>
+```
