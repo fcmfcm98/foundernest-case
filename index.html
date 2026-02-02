@@ -257,6 +257,12 @@
             font-weight: 600;
             margin-bottom: 16px;
             color: #333;
+            transition: all 0.3s ease;
+        }
+
+        .results-count.updating {
+            opacity: 0.5;
+            transform: scale(0.98);
         }
 
         .candidate-card {
@@ -435,6 +441,33 @@
                 work: 'On-site',
                 experience: '5 years',
                 skills: ['Python', 'React', 'Node.js']
+            },
+            {
+                name: 'Sarah Chen',
+                title: 'Senior Data Scientist',
+                company: 'Healthcare AI Labs',
+                location: 'San Francisco, CA (Bay Area)',
+                work: 'Hybrid',
+                experience: '7 years',
+                skills: ['MLOps', 'Python', 'TensorFlow', 'Healthcare Data']
+            },
+            {
+                name: 'Michael O\'Brien',
+                title: 'Data Scientist',
+                company: 'MedTech Solutions',
+                location: 'Oakland, CA (Bay Area)',
+                work: 'Remote',
+                experience: '5 years',
+                skills: ['MLOps', 'Python', 'Clinical Analytics']
+            },
+            {
+                name: 'Ana Martinez',
+                title: 'Head of Sales',
+                company: 'Fintech Global',
+                location: 'Mexico City, Mexico',
+                work: 'On-site',
+                experience: '8 years',
+                skills: ['B2B Sales', 'Fintech', 'Spanish', 'English']
             }
         ];
 
@@ -475,7 +508,13 @@
             if (filter.type === 'work') {
                 const existingWork = activeTags.find(t => t.type === 'work');
                 if (existingWork && existingWork.value !== filter.value) {
-                    showWarning(`Filter '${filter.value}' overrides ${existingWork.source === 'prompt' ? 'prompt' : 'filter'} '${existingWork.value}'`);
+                    const oldTag = { ...existingWork };
+                    showWarning(
+                        `Filter '${filter.value}' conflicts with ${existingWork.source === 'prompt' ? 'prompt' : 'filter'} '${existingWork.value}'`,
+                        oldTag,
+                        filter
+                    );
+                    // Remove old tag by default (filter wins)
                     activeTags = activeTags.filter(t => t.type !== 'work');
                 }
             }
@@ -499,16 +538,56 @@
             updateUI();
         }
 
-        function showWarning(message) {
+        let conflictData = null;
+
+        function showWarning(message, oldTag = null, newTag = null) {
+            conflictData = { oldTag, newTag };
             const warningBox = document.getElementById('warningBox');
+            
+            let actionButtons = '';
+            if (oldTag && newTag) {
+                actionButtons = `
+                    <div style="display: flex; gap: 8px; margin-left: auto;">
+                        <button class="btn-secondary" style="padding: 6px 12px; font-size: 13px;" onclick="resolveConflict('keep-new')">Keep ${newTag.value}</button>
+                        <button class="btn-secondary" style="padding: 6px 12px; font-size: 13px;" onclick="resolveConflict('keep-old')">Keep ${oldTag.value}</button>
+                        <button class="btn-secondary" style="padding: 6px 12px; font-size: 13px;" onclick="resolveConflict('keep-both')">Keep Both</button>
+                    </div>
+                `;
+            }
+            
             warningBox.innerHTML = `
                 <div class="warning">
                     <span class="warning-icon">⚠️</span>
                     <span class="warning-text">${message}</span>
+                    ${actionButtons}
                     <button class="warning-dismiss" onclick="hideWarning()">×</button>
                 </div>
             `;
             warningBox.style.display = 'block';
+        }
+
+        function resolveConflict(action) {
+            if (!conflictData) return;
+            
+            if (action === 'keep-new') {
+                // Already done - new tag added, old removed
+                hideWarning();
+            } else if (action === 'keep-old') {
+                // Remove new tag, keep old
+                activeTags = activeTags.filter(t => 
+                    !(t.type === conflictData.newTag.type && t.value === conflictData.newTag.value)
+                );
+                activeTags.push(conflictData.oldTag);
+                hideWarning();
+                updateUI();
+            } else if (action === 'keep-both') {
+                // Add old tag back
+                activeTags.push(conflictData.oldTag);
+                hideWarning();
+                updateUI();
+            }
+            
+            conflictData = null;
         }
 
         function hideWarning() {
@@ -541,28 +620,34 @@
             const resultsCount = document.getElementById('resultsCount');
             const candidatesContainer = document.getElementById('candidatesContainer');
 
-            if (candidateCount === 0) {
-                resultsCount.textContent = 'Enter a search to see results';
-                candidatesContainer.innerHTML = '';
-                return;
-            }
+            // Add updating animation
+            resultsCount.classList.add('updating');
+            
+            setTimeout(() => {
+                if (candidateCount === 0) {
+                    resultsCount.textContent = 'Enter a search to see results';
+                    candidatesContainer.innerHTML = '';
+                } else {
+                    resultsCount.textContent = `${candidateCount} candidates found`;
 
-            resultsCount.textContent = `${candidateCount} candidates found`;
-
-            // Show sample candidates
-            const samplesToShow = candidatePool.slice(0, 3);
-            candidatesContainer.innerHTML = samplesToShow.map(candidate => `
-                <div class="candidate-card">
-                    <div class="candidate-name">${candidate.name}</div>
-                    <div class="candidate-title">${candidate.title} at ${candidate.company}</div>
-                    <div class="candidate-details">
-                        <div class="candidate-detail">📍 ${candidate.location}</div>
-                        <div class="candidate-detail">💼 ${candidate.work}</div>
-                        <div class="candidate-detail">⏱️ ${candidate.experience}</div>
-                        <div class="candidate-detail">🔧 ${candidate.skills.join(', ')}</div>
-                    </div>
-                </div>
-            `).join('');
+                    // Show sample candidates
+                    const samplesToShow = candidatePool.slice(0, 3);
+                    candidatesContainer.innerHTML = samplesToShow.map(candidate => `
+                        <div class="candidate-card">
+                            <div class="candidate-name">${candidate.name}</div>
+                            <div class="candidate-title">${candidate.title} at ${candidate.company}</div>
+                            <div class="candidate-details">
+                                <div class="candidate-detail">📍 ${candidate.location}</div>
+                                <div class="candidate-detail">💼 ${candidate.work}</div>
+                                <div class="candidate-detail">⏱️ ${candidate.experience}</div>
+                                <div class="candidate-detail">🔧 ${candidate.skills.join(', ')}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+                
+                resultsCount.classList.remove('updating');
+            }, 200);
         }
     </script>
 </body>
