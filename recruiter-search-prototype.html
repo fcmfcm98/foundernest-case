@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recruiter Search - Prompt + Filters Prototype</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: #0a66c2;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        .search-section {
+            margin-bottom: 24px;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        #searchInput {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 15px;
+            transition: border-color 0.2s;
+        }
+
+        #searchInput:focus {
+            outline: none;
+            border-color: #0a66c2;
+        }
+
+        .btn-primary {
+            padding: 12px 32px;
+            background: #0a66c2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: #084d94;
+        }
+
+        .btn-secondary {
+            padding: 8px 16px;
+            background: white;
+            color: #0a66c2;
+            border: 2px solid #0a66c2;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: #f0f7ff;
+        }
+
+        .example-prompts {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .example-prompt {
+            padding: 6px 12px;
+            background: #f0f7ff;
+            border: 1px solid #0a66c2;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #0a66c2;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .example-prompt:hover {
+            background: #0a66c2;
+            color: white;
+        }
+
+        .constraints-section {
+            margin-bottom: 24px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            min-height: 80px;
+        }
+
+        .constraints-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .constraints-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: white;
+            border: 2px solid #0a66c2;
+            border-radius: 6px;
+            font-size: 14px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .tag-value {
+            font-weight: 600;
+            color: #0a66c2;
+        }
+
+        .tag-source {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .tag-remove {
+            background: none;
+            border: none;
+            color: #666;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+
+        .tag-remove:hover {
+            color: #d32f2f;
+        }
+
+        .empty-state {
+            color: #999;
+            font-size: 14px;
+            font-style: italic;
+        }
+
+        .add-filter-section {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        #filterDropdown {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .warning {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: #fff3cd;
+            border: 1px solid #ffecb5;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            animation: slideIn 0.3s ease;
+        }
+
+        .warning-icon {
+            font-size: 20px;
+        }
+
+        .warning-text {
+            flex: 1;
+            font-size: 14px;
+            color: #856404;
+        }
+
+        .warning-dismiss {
+            background: none;
+            border: none;
+            color: #856404;
+            cursor: pointer;
+            font-size: 20px;
+            padding: 0;
+        }
+
+        .results-section {
+            margin-bottom: 24px;
+        }
+
+        .results-count {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #333;
+        }
+
+        .candidate-card {
+            padding: 16px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            transition: box-shadow 0.2s;
+        }
+
+        .candidate-card:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .candidate-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #0a66c2;
+            margin-bottom: 4px;
+        }
+
+        .candidate-title {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .candidate-details {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .candidate-detail {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .footer {
+            margin-top: 32px;
+            padding-top: 16px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            color: #999;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Candidate Search</h1>
+        <p class="subtitle">Combine natural language with structured filters</p>
+
+        <!-- Search Section -->
+        <div class="search-section">
+            <div class="search-box">
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    placeholder="Try: 'senior backend engineer Python Berlin remote'" 
+                />
+                <button class="btn-primary" onclick="handleSearch()">Search</button>
+            </div>
+            <div class="example-prompts">
+                <span style="font-size: 13px; color: #666; margin-right: 8px;">Try:</span>
+                <div class="example-prompt" onclick="setPrompt('senior backend engineer Python Berlin remote')">
+                    Senior Backend Engineer
+                </div>
+                <div class="example-prompt" onclick="setPrompt('Head of Sales fintech Spanish English Mexico City')">
+                    Head of Sales
+                </div>
+                <div class="example-prompt" onclick="setPrompt('data scientist healthcare MLOps Bay Area 5 years')">
+                    Data Scientist
+                </div>
+            </div>
+        </div>
+
+        <!-- Warning (hidden by default) -->
+        <div id="warningBox" style="display: none;"></div>
+
+        <!-- Active Constraints Section -->
+        <div class="constraints-section">
+            <div class="constraints-header">
+                <span class="constraints-title">Active Constraints:</span>
+            </div>
+            <div class="tags-container" id="tagsContainer">
+                <span class="empty-state">No constraints applied</span>
+            </div>
+            <div class="add-filter-section">
+                <select id="filterDropdown" onchange="addManualFilter()">
+                    <option value="">+ Add filter</option>
+                    <option value="experience">5+ years experience</option>
+                    <option value="onsite">On-site</option>
+                    <option value="hybrid">Hybrid</option>
+                    <option value="manager">Manager level</option>
+                    <option value="english">English required</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results-section">
+            <div class="results-count" id="resultsCount">Enter a search to see results</div>
+            <div id="candidatesContainer"></div>
+        </div>
+
+        <div class="footer">
+            MVP Prototype - Prompt + Filters Integration | FounderNest Case Study
+        </div>
+    </div>
+
+    <script>
+        let activeTags = [];
+        let candidateCount = 0;
+
+        const extractionRules = {
+            'senior': { type: 'seniority', value: 'Senior' },
+            'junior': { type: 'seniority', value: 'Junior' },
+            'mid': { type: 'seniority', value: 'Mid-level' },
+            'backend': { type: 'title', value: 'Backend Engineer' },
+            'frontend': { type: 'title', value: 'Frontend Engineer' },
+            'fullstack': { type: 'title', value: 'Fullstack Engineer' },
+            'data scientist': { type: 'title', value: 'Data Scientist' },
+            'head of sales': { type: 'title', value: 'Head of Sales' },
+            'python': { type: 'skill', value: 'Python' },
+            'javascript': { type: 'skill', value: 'JavaScript' },
+            'java': { type: 'skill', value: 'Java' },
+            'mlops': { type: 'skill', value: 'MLOps' },
+            'berlin': { type: 'location', value: 'Berlin' },
+            'mexico city': { type: 'location', value: 'Mexico City' },
+            'bay area': { type: 'location', value: 'Bay Area' },
+            'remote': { type: 'work', value: 'Remote' },
+            'spanish': { type: 'language', value: 'Spanish' },
+            'english': { type: 'language', value: 'English' },
+            'fintech': { type: 'industry', value: 'Fintech' },
+            'healthcare': { type: 'industry', value: 'Healthcare' },
+            '5 years': { type: 'experience', value: '5+ years' },
+            '5+': { type: 'experience', value: '5+ years' }
+        };
+
+        const manualFilterMap = {
+            'experience': { type: 'experience', value: '5+ years' },
+            'onsite': { type: 'work', value: 'On-site' },
+            'hybrid': { type: 'work', value: 'Hybrid' },
+            'manager': { type: 'seniority', value: 'Manager' },
+            'english': { type: 'language', value: 'English' }
+        };
+
+        const candidatePool = [
+            {
+                name: 'Jane Doe',
+                title: 'Senior Backend Engineer',
+                company: 'Tech Startup',
+                location: 'Berlin, Germany',
+                work: 'Remote',
+                experience: '6 years',
+                skills: ['Python', 'AWS', 'Docker']
+            },
+            {
+                name: 'Carlos Rodriguez',
+                title: 'Backend Developer',
+                company: 'Scale AI',
+                location: 'Madrid, Spain',
+                work: 'Hybrid',
+                experience: '4 years',
+                skills: ['Python', 'Django', 'PostgreSQL']
+            },
+            {
+                name: 'Anna Schmidt',
+                title: 'Full Stack Engineer',
+                company: 'FinTech Co',
+                location: 'Berlin, Germany',
+                work: 'On-site',
+                experience: '5 years',
+                skills: ['Python', 'React', 'Node.js']
+            }
+        ];
+
+        function setPrompt(text) {
+            document.getElementById('searchInput').value = text;
+            handleSearch();
+        }
+
+        function handleSearch() {
+            const input = document.getElementById('searchInput').value.toLowerCase();
+            if (!input.trim()) return;
+
+            activeTags = [];
+            
+            for (const [keyword, tag] of Object.entries(extractionRules)) {
+                if (input.includes(keyword)) {
+                    const exists = activeTags.find(t => t.type === tag.type && t.value === tag.value);
+                    if (!exists) {
+                        activeTags.push({
+                            ...tag,
+                            source: 'prompt'
+                        });
+                    }
+                }
+            }
+
+            updateUI();
+        }
+
+        function addManualFilter() {
+            const select = document.getElementById('filterDropdown');
+            const filterKey = select.value;
+            if (!filterKey) return;
+
+            const filter = manualFilterMap[filterKey];
+            
+            // Check for conflicts
+            if (filter.type === 'work') {
+                const existingWork = activeTags.find(t => t.type === 'work');
+                if (existingWork && existingWork.value !== filter.value) {
+                    showWarning(`Filter '${filter.value}' overrides ${existingWork.source === 'prompt' ? 'prompt' : 'filter'} '${existingWork.value}'`);
+                    activeTags = activeTags.filter(t => t.type !== 'work');
+                }
+            }
+
+            // Check for duplicates
+            const exists = activeTags.find(t => t.type === filter.type && t.value === filter.value);
+            if (!exists) {
+                activeTags.push({
+                    ...filter,
+                    source: 'manual'
+                });
+            }
+
+            select.value = '';
+            updateUI();
+        }
+
+        function removeTag(index) {
+            activeTags.splice(index, 1);
+            hideWarning();
+            updateUI();
+        }
+
+        function showWarning(message) {
+            const warningBox = document.getElementById('warningBox');
+            warningBox.innerHTML = `
+                <div class="warning">
+                    <span class="warning-icon">⚠️</span>
+                    <span class="warning-text">${message}</span>
+                    <button class="warning-dismiss" onclick="hideWarning()">×</button>
+                </div>
+            `;
+            warningBox.style.display = 'block';
+        }
+
+        function hideWarning() {
+            document.getElementById('warningBox').style.display = 'none';
+        }
+
+        function updateUI() {
+            const tagsContainer = document.getElementById('tagsContainer');
+            
+            if (activeTags.length === 0) {
+                tagsContainer.innerHTML = '<span class="empty-state">No constraints applied</span>';
+                candidateCount = 0;
+            } else {
+                tagsContainer.innerHTML = activeTags.map((tag, index) => `
+                    <div class="tag">
+                        <span class="tag-value">${tag.value}</span>
+                        <span class="tag-source">(${tag.source === 'prompt' ? 'from prompt' : 'manual'})</span>
+                        <button class="tag-remove" onclick="removeTag(${index})">×</button>
+                    </div>
+                `).join('');
+
+                // Calculate candidate count based on tags
+                candidateCount = Math.max(10, 150 - (activeTags.length * 20) - Math.floor(Math.random() * 30));
+            }
+
+            updateResults();
+        }
+
+        function updateResults() {
+            const resultsCount = document.getElementById('resultsCount');
+            const candidatesContainer = document.getElementById('candidatesContainer');
+
+            if (candidateCount === 0) {
+                resultsCount.textContent = 'Enter a search to see results';
+                candidatesContainer.innerHTML = '';
+                return;
+            }
+
+            resultsCount.textContent = `${candidateCount} candidates found`;
+
+            // Show sample candidates
+            const samplesToShow = candidatePool.slice(0, 3);
+            candidatesContainer.innerHTML = samplesToShow.map(candidate => `
+                <div class="candidate-card">
+                    <div class="candidate-name">${candidate.name}</div>
+                    <div class="candidate-title">${candidate.title} at ${candidate.company}</div>
+                    <div class="candidate-details">
+                        <div class="candidate-detail">📍 ${candidate.location}</div>
+                        <div class="candidate-detail">💼 ${candidate.work}</div>
+                        <div class="candidate-detail">⏱️ ${candidate.experience}</div>
+                        <div class="candidate-detail">🔧 ${candidate.skills.join(', ')}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html>
